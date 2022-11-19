@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -13,14 +14,21 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateLogger();
 
-Log.Logger.Information("Application starting!");
+Log.Logger.Information("Application is starting!");
 
+// Setup DI
 var host = Host.CreateDefaultBuilder()
     .ConfigureServices((context, services) =>
     {
+        // Means give me a new instance everytime asked for the GreetingService -->  services.AddTransient<IGreetingService, GreetingService>();
+        services.AddTransient<GreetingService>();
 
     }).UseSerilog().Build();
+var svc = ActivatorUtilities.CreateInstance<GreetingService>(host.Services);
+svc.Run(); // svc variable gaat via CreateInstance() methode vragen aan de host om te kijken in zijn services en daar een instance van het meegegeven type terug te geven in deze geval IGreetingService
 
+
+// Setup configuration
 static void BuildConfig(IConfigurationBuilder builder)
 {
     builder.SetBasePath(Directory.GetCurrentDirectory())
@@ -29,7 +37,13 @@ static void BuildConfig(IConfigurationBuilder builder)
         .AddEnvironmentVariables(); // This is the setup to talk to your configuration source
 }
 
-public class GreetingService
+// Setup Interface & Class for logging something 
+public interface IGreetingService
+{
+    void Run();
+}
+
+public class GreetingService : IGreetingService
 {
     private readonly ILogger<GreetingService> logger;
     private readonly IConfiguration config;
